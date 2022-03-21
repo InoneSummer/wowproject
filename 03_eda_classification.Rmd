@@ -1,7 +1,11 @@
 ---
 title: "02_eda and kmeans classification"
 author: "Inwon"
+<<<<<<< HEAD
 date: '2022 3 21' 
+=======
+date: '2022 3 16 '
+>>>>>>> 3478e2e544e2428a38e1bd30664cf61047bd6a83
 output: html_document
 ---
 
@@ -226,7 +230,10 @@ dat2<-dat2%>%
 #지역타입 추출하기 
 arena= c("Arena") #팀전 
 pvp = c("Battleground","Arena" )
+<<<<<<< HEAD
 dungeon = c("Dungeon")
+=======
+>>>>>>> 3478e2e544e2428a38e1bd30664cf61047bd6a83
 quest = c("Dungeon","Sea", "Event") #싸움 퀘스트 수행지 
 city = c("City") #경매장, 퀘스트  
 others = c("Zone","Transit")
@@ -238,14 +245,22 @@ dat3 <- dat2 %>%
   group_by(id, t, Level, Type)%>%
   mutate(aretime = ifelse(Type %in% arena, sum(minraw), 0), 
          pvptime = ifelse(Type %in% pvp, sum(minraw), 0),
+<<<<<<< HEAD
          duntime = ifelse(Type %in% dungeon, sum(minraw),0),
+=======
+>>>>>>> 3478e2e544e2428a38e1bd30664cf61047bd6a83
          quetime = ifelse(Type %in% quest, sum(minraw),0), 
          cittime = ifelse(Type %in% city, sum(minraw),0),
          othtime = ifelse(Type %in% others, sum(minraw),0))
 
+<<<<<<< HEAD
 data <- dat3[,c(14,13,6,2,1,16,17,18,19,20,21)]
 data <- unique(data)
 
+=======
+data <- dat3[,c(14,13,6,2,1,16,17,18,19,20)]
+data <- unique(data)
+>>>>>>> 3478e2e544e2428a38e1bd30664cf61047bd6a83
 ```
 
 ```{r}
@@ -254,14 +269,21 @@ data <- data%>%
   group_by(id,t,Level)%>%
   mutate(arena = sum(aretime),
          pvp= sum(pvptime), 
+<<<<<<< HEAD
          dungeon = sum(duntime),
+=======
+>>>>>>> 3478e2e544e2428a38e1bd30664cf61047bd6a83
          quest = sum(quetime), 
          city = sum(cittime),
          other = sum(othtime), 
          tottime = sum(pvptime)+sum(quetime)+sum(cittime)+sum(othtime))
 
 #주간 길드 여부 
+<<<<<<< HEAD
 data <- data[,-c(6:11)]  
+=======
+data <- data[,-c(6:10)]  
+>>>>>>> 3478e2e544e2428a38e1bd30664cf61047bd6a83
 data <- data %>% 
   group_by(id,t,Level)%>%
   mutate(guild = max(Guild))
@@ -325,8 +347,13 @@ data2 <-data2%>%
  
  
 ```{r}
+<<<<<<< HEAD
 dat <- data2[,-c(13:17)]
 write.csv(dat, "32_refineddata_withd.csv")
+=======
+dat <- data2[,-c(12:16)]
+write.csv(dat, "32_refineddata.csv")
+>>>>>>> 3478e2e544e2428a38e1bd30664cf61047bd6a83
 ```
  
  
