@@ -1,0 +1,339 @@
+---
+title: "04_variables"
+author: "Inwon"
+date: '2022 3 22 '
+output: html_document
+---
+
+
+#GOAL : 주요 변수 생성하기/상관관계 파악 
+
+
+
+```{r}
+data2 <- read.csv("32_refineddata_withd.csv")
+data2 <- unique(data2[,-1])
+```
+
+#1. 주 단위로 데이터 묶기 
+```{r}
+#주별로 playtime, level up 가르기 
+library(dplyr)
+data2 <- data2%>%
+  group_by(id,t)%>%
+  mutate(minLev = min(Level), maxLev = max(Level),
+         Levup = max(Level)-min(Level), 
+         Arena = sum(arena), 
+         Pvp = sum(pvp), 
+         Dungeon = sum(dungeon),
+         Quest = sum(quest), 
+         City = sum(city), 
+         Other = sum(other), 
+         Total = sum(tottime),
+         Guild = max(guild))
+data2 <- data2[, -c(4:11)]
+dat <- unique(data2)
+```
+
+
+#2. social interaction 변수 추출 
+
+ - DV:이탈  
+ - 길드 사이즈(동 주 소속인원수)가 클수록 이탈이 낮을 것이다. 퀘스트 클리어로 연관된 더 많은 기회를 누릴 수 있다. 
+ - 누적평균 동일 길드 체류기간이 짧을수록 이탈이 높을 것이다.적응을 잘 못할 수 있다.   
+
+ 
+```{r}
+#길드 사이즈:gm (A)
+g <- read.csv("30_dat_id.csv")
+g <- g[,c(2,3,5)]
+g <- unique(g)
+
+dat <- left_join(dat, g, by=c("week", "Guild"))
+dat <- unique(dat)
+dat$Asize <- ifelse(dat$Guild ==0, 0, dat$gm) 
+```
+
+```{r}
+#누적길드체류 기간 = 누적길드변경회수 /t  (B)
+ #- 낮을수록 길드 내에서 잘 지낸다. 높을수록 변경했다.
+datg <- dat %>% 
+  group_by(id)%>%
+  mutate(lag = lag(Guild), n=1)
+
+datg$l <- ifelse(datg$Guild!=datg$lag, 1, 0)
+datg$l <- ifelse(is.na(datg$lag), 0, datg$l)
+
+datg <- datg %>% 
+  group_by(id)%>%
+  mutate(cumsum = cumsum(l), cumbyt = cumsum(l)/t)  
+
+datg <- datg[,-c(5:17)]
+
+dat$Bcumnperiod <- datg$cumbyt
+
+#누적 길드 변경 회수  (C) 
+dat$Cchange <- datg$cumsum
+```
+
+```{r}
+# 누적 무길드 횟수 (D) 
+dat <- dat %>%
+  group_by(id,t)%>%
+  mutate(solo = ifelse(guild==0, 1, 0))
+
+dat <- dat %>%
+  group_by(id)%>%
+  mutate(Dsolo = cumsum(solo))
+
+```
+
+
+
+#3. 중독관련 변수 추출 
+ - 1주에 얼마만큼의 시간을 와우에 투자하는가
+ - 평균 플레이 시간은 얼마인가 
+```{r}
+#주간 플레이시간 
+dat <- dat %>%
+  group_by(id,t)%>%
+  mutate(Eweeklyplay = Total/10080)
+```
+
+
+
+
+
+#4. 활동관련 변수 추출 
+
+ - Arena의 퀘스트 비중이 높을수록 이탈이 낮을 것이다. 성취감을 올리고 보상을 주며, 팀 정체성을 강화한다.
+ - PVP의 시간비중이 높을수록 이탈이 낮을 것이다.성취감을 올리고 보상을 주며, 팀 정체성을 강화한다.  
+ - 퀘스트(던전)의 주당 시간이 높을수록 이탈이 낮을 것이다. 성취감을 올리고, 보상을 준다. 
+ - 경험군이라면 경매, 단독퀘스트의 비중이 높을수록 이탈이 낮을 것이다. 탐험을 위한 자기 선택적 즐거움을 준다. 
+
+```{r}
+#PVP의 영향력(C)
+# 전체 퀘스트 관련 활동 중 Arena 시간의 비중 
+dat$Farena <- round(dat$Arena/(dat$Pvp+dat$Quest),4)
+dat$Farena[is.nan(dat$Farena)]<-0
+```
+
+```{r}
+#pvp시간의 비중 by total 
+dat$Gpvp <- round((dat$Pvp)/dat$Total,4)
+dat$Gpvp[is.nan(dat$Gpvp)]<-0
+```
+
+```{r}
+#던전 시간의 비중 by total (D)
+dat$Hdun <- round(dat$Dungeon/dat$Total,4)
+dat$Hdun[is.nan(dat$Hdun)]<-0
+```
+
+```{r}
+#경매/단독퀘스트의 비중 
+dat$Icity <- round((dat$Quest-dat$Dungeon)/dat$Total,4)
+dat$Icity[is.nan(dat$Icity)]<-0
+```
+
+
+
+#5. 이탈관련 변수 
+```{r}
+#연속으로 off한 주의 수 구하기 
+datt <- dat[,1:3]
+
+id <- unique(dat$id)
+df <- rep(c(1:53), 4163)
+dfid<-rep(id, each=53)
+df <-cbind(dfid, df)
+df<- as.data.frame(df)
+names(df)=c("id", "week")
+df$week <- as.numeric(df$week)
+df <- left_join(df, datt, by=c("id", "week"))
+
+df<-df[,1:3]
+
+#배열 중 na가 아닌 숫자가 나오면 그 이후 1을 반환하는 함수    
+afterna <- function(x) {
+  
+  x <- as.vector(x)
+  len = length(x)[1]
+  list = list()
+  loc = which(!is.na(x))[1]
+
+  k = len-loc+1
+  a = rep(0,loc-1)
+  b = rep(1, k)
+
+  list = append(a,b)
+  list = as.numeric(list)
+  return(list)  
+}
+
+df <- df%>%
+  group_by(id)%>%
+  mutate(tby = afterna(t), 
+         off = ifelse(is.na(t), 1,0))
+  
+df<- df%>%
+  filter(tby!=0)
+
+
+# 1이 있으면 누적으로 합하다가 0 이 나오면 다시 1부터 시작해 누적하는 함수 
+cumsumone<-function (x){
+  len <- length(x)
+  y <- list()
+  y <-ifelse(x[1]==1, append(y,1), append(y,0))
+  
+  for (i in 2:len){
+    if(x[i]==1&x[i-1]==1){
+      y[i] <- as.numeric(y[i-1])+1
+    }
+    else if(x[i]==1&x[i-1]==0){
+      y[i] <-1
+      }
+    else {
+      y[i]<-0
+    }
+  }
+  y <- as.numeric(y)
+  return(y)
+}  
+
+df$Jcumt <- cumsumone(df$off)
+```
+
+```{r}
+#이탈여부 변수 
+df <- df%>%
+  group_by(id)%>%
+  mutate(leave = ifelse(Jcumt>=3, 1,0))
+
+df <- df[,-4] 
+df <- unique(df)
+```
+
+
+
+
+#6. 데이터 프레임 결합하기 
+```{r}
+dat <- dat[,-c(4,20)]
+dat <- unique(dat)
+```
+
+```{r}
+#데이터 프레임 결합하기 
+df2 <- left_join(df, dat, by=c("id", "week"))
+df <- df2[,-c(3,7)]
+```
+
+```{r}
+#상태 결측치 위의 것으로 채우기 
+fillnas <- function(x){
+  x <- as.vector(x)
+  len <- length(x)
+  for (i in 2:len){
+    if (is.na(x[i])&!is.na(x[i-1])){
+      x[i]=x[i-1]
+    }
+    else if (is.na(x[i])&is.na(x[i-1])){
+      y = x[1:i]
+      loc = which(is.na(y))
+      loc = tail(loc,1)
+      x[i]=x[loc-1]
+    }
+    else {
+      x[i]=x[i]
+    }
+  }
+  return(x)
+}
+```
+
+```{r}
+#활동 결측치 0으로 채우기 
+df$Levup[is.na(df$Levup)] <-0
+
+df$Arena[is.na(df$Arena)] <-0
+df$Pvp[is.na(df$Pvp)] <-0
+df$Dungeon[is.na(df$Dungeon)] <-0 
+df$Quest[is.na(df$Quest)] <-0
+df$City[is.na(df$City)] <-0
+df$Other[is.na(df$Other)] <-0
+df$Total[is.na(df$Total)] <-0
+
+df$Asize = fillnas(df$Asize)
+df$Bcumnperiod = fillnas(df$Bcumnperiod)
+df$Cchange = fillnas(df$Cchange)
+df$Dsolo = fillnas(df$Dsolo)
+
+df$Eweeklyplay[is.na(df$Eweeklyplay)] <-0
+df$Farena[is.na(df$Farena)] <-0
+df$Gpvp[is.na(df$Gpvp)] <-0
+df$Hdun[is.na(df$Hdun)] <-0
+df$Icity[is.na(df$Icity)] <-0
+```
+
+```{r}
+data <- df[,-c(6,7,17)]
+```
+
+```{r}
+#상대주간 t 재생성 
+data <-data%>%
+  group_by(id)%>%
+  mutate(n=n())
+
+data <-data%>%
+  group_by(id)%>%
+  mutate(rn = c(1:n))
+```
+
+```{r}
+#데이터 추리기 
+datat <- data[,c(1,25,3,5,6, 
+                 7,8,9,10,13,14,
+                 15,16,17,18,19, 
+                 20,21,22,23,4)]
+names(datat) <- c("id", "t", "off", "leave", "Levup",
+                  "Arena", "Pvp", "Dungeon", "Quest", "Total", "Guild",  
+                  "Asize", "Bcumnperiod", "Cchange", "Dsolo", "Eweeklyplay", 
+                  "Farena", "Gpvp", "Hdun", "Icity", "Jcumt")
+```
+
+```{r}
+#9주 이상 미접속 완전 이탈 간주 
+datatcut<-datat %>%
+  filter(Jcumt<8)
+```
+
+```{r}
+#3주 이상 미접속 이탈 간주 (변경)
+datatcut$leave <- ifelse(datatcut$Jcumt>2, 1,0) 
+```
+
+
+```{r}
+#상관관계 분석 
+library(corrplot)
+cor1 <- cor(datatcut[,c(4,5, 6,7,8,9,10, 12,13,14,15,16, 21)])
+corrplot(cor1, method= "number", number.cex=0.55)
+```
+```{r}
+cor2 <- cor(datatcut[,c(4,5, 12,13,14,15,16,17,18,19,20,21)])
+corrplot(cor2, method="number",number.cex=0.6)
+```
+```{r}
+cor3 <- cor(datatcut[,c(12,13,14,15,16,17,18,19,20,21)])
+corrplot(cor3, method="number",number.cex=0.8)
+```
+
+```{r}
+write.csv(datat, "35_databeforecut.csv")
+write.csv(datatcut, "36_dataoriginaltype2.csv")
+```
+
+
+
