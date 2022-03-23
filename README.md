@@ -1,5 +1,6 @@
 # wowproject
-The effect of social interaction on  individual churn decision in Game
+The effect of social interaction on  individual churn decision in MMORPG Game
+MMORPG 게임에서 유저 간 사회적 교류요소가 개인의 이탈결정에 미치는 영향 
 
 - Introduction 
 
@@ -9,7 +10,7 @@ Churn prediction in game is complicated because it’s uneasy to catch the point
 
 Since everyone has different intrinsic motivation for game, the impact of social interaction on individuals’ fun would be different. According to self-determination theory, autonomy and competence are two intrinsic motivations contributing to absorbing in game. This can be found in other quantitative marketing research.  (Nevskaya & Albuquerque, 2019; Zhao, Yang, Shum, & Dut, 2022) divided user type into‘achiever’and‘experiencer’, grouping those who respond to external rewards more as ‘achiever’. Those who value competence and those who value autonomy will be influenced by social interaction differently, and this would affect on individual’s decision to leave the game. 
 
-In this research, 1) I’d like to analyze that how social interaction factors impacts on individual churn decision according to the user type. 2) With user type and other social interaction factors, we could predict the possibility of leaving the game in week t at individual level. 3) As a result, this research would find out the relationship contribute to making social interacting events or marking policy for decreasing churn rate considering user groups in the game and other industry.   
+In this research, 1) I’d like to analyze that how social interaction factors impacts on individual churn decision 2) With user type and other social interaction factors, we could predict the possibility of leaving the game in week t at individual level. 3) As a result, this research would find out the relationship contribute to making social interacting events or marketing policy for decreasing churn rate in the game and other industry.   
 
 
 
