@@ -1,5 +1,6 @@
 # wowproject
 The effect of social interaction on  individual churn decision in MMORPG Game
+
 MMORPG 게임에서 유저 간 사회적 교류요소가 개인의 이탈결정에 미치는 영향 
 
 - Introduction 
